@@ -1,0 +1,158 @@
+info:
+    title: Darktrace vSensor Quick Start for GCP
+    author: Darktrace Holdings Ltd
+    description: Creates an auto-scaling Darktrace vSensor deployment into a GCP region.
+    version: 1.0
+
+imports:
+  - path: launch.py
+  - path: common.py
+  - path: iam_member.py
+  - path: network.py
+  - path: storage.py
+  - path: autoscaledgroup.py
+  - path: bastion.py
+  - path: loadbalancer.py
+
+required:
+  - region
+  - zone1
+  - zone2
+  - bastion-enable
+  - mig-subnet-cidr
+  - mig-instance-type
+  - mig-min-size
+  - mig-max-size
+  - vsensor-update-key
+  - appliance-hostname
+  - appliance-port
+  - appliance-push-token
+  - pcap-retention-time-days
+
+properties:
+  region:
+    type: string
+    default: europe-west2
+    description: Region to deploy the vSensor Quick Start in.
+
+  existing-vpc-name:
+    type: string
+    description: (Optional) Use an existing VPC to deploy the vSensor Quick Start subnets in. Leaving blank will deploy a new VPC which can be peered/expanded.
+
+  zone1:
+    type: string
+    default: europe-west2-a
+    description: Availability Zone 1 to use for the vSensors. Two Availability Zones are used for this deployment.
+
+  zone2:
+    type: string
+    default: europe-west2-b
+    description: Availability Zone 2 to use for the vSensors. Two Availability Zones are used for this deployment.
+  
+  bastion-enable:
+    type: boolean
+    default: true
+    description: Deploy a public Bastion host to access your vSensor deployment. If 'False' is selected, configure your ssh access manually after deployment.
+
+  bastion-subnet-cidr:
+    type: string
+    pattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    default: 10.127.1.0/24
+    description: CIDR IP range of the public subnet the bastion will be deployed in.
+ 
+  bastion-external-cidr:
+    type: string
+    pattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    default: 0.0.0.0/0
+    description: CIDR IP range that is permitted to access the bastion hosts. We recommend that you set this value to a trusted IP range.
+
+  mig-subnet-cidr:
+    type: string
+    pattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    default: 10.127.0.0/24
+    description: CIDR IP range of the private subnet the bastion will be deployed in.
+  
+  mig-instance-type:
+    type: string
+    enum:
+      - e2-standard-2
+      - e2-standard-4
+      - e2-standard-8
+      - n2-standard-8
+      - n2-standard-16
+      - n2-standard-32
+    default: e2-standard-4
+    description: The instance type of deployed vSensors. 
+
+  mig-min-size:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 1
+    description: Minimum number of vSensor instances in the Managed Instance Group.
+  
+  mig-max-size:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 1
+    description: Maximum number of vSensor instances in the Managed Instance Group.
+
+  vsensor-update-key:
+    type: string
+    pattern: ^[a-zA-Z0-9%\.]+:[a-zA-Z0-9]+$
+    default: XXXXXXXXXX:XXXXXXXXX
+    description: Darktrace update key. If you don't have one, contact your Darktrace representative.
+
+  appliance-hostname:
+    type: string
+    description: Host name of the Darktrace appliance.
+
+  appliance-port:
+    type: integer
+    minimum: 1
+    maximum: 65535
+    default: 443
+    description: Connection port between vSensor and the Darktrace appliance.
+
+  appliance-push-token:
+    type: string
+    pattern: ^[a-zA-Z0-9-]{4,64}:[a-zA-Z0-9]{5,63}$
+    default: XXXXXXXXXX:XXXXXXXXX
+    description: Push token to authenticate with the appliance. For more information, see the Darktrace Customer Portal.
+
+  ossensor-hmac:
+    type: string
+    minLength: 6
+    maxLength: 62
+    description: Hash-based message authentication code (HMAC) token to authenticate osSensors with vSensor.
+
+  pcap-retention-time-days:
+    type: integer
+    minimum: 1
+    default: 7
+    description: Captured packets storage retention (days), longer retention will increase storage costs.
+
+  
+outputs:
+  vpc-name:
+    description: The VPC Darktrace vSensors have been deployed into.
+    type: string
+  nat-external-ip:
+    description: The NAT IP used by vSensors to communicate with the Appliance. Allow this IP ingress in the network containing the appliance.
+    type: string
+  pcap-bucket-name:
+    description: The GCP Storage Bucket which PCAPs will be stored within.
+    type: string
+  bastion-subnet-name:
+    description: A bastion has been deployed into this subnet
+    type: string
+  vsensor-subnet-name:
+    description: The subnet containing the vSensor managed instance group. Configure firewall / routing to allow osSensors access to this subnet.
+    type: string
+  ossensor-vsensor-ip:
+    description: Configure osSensors to access this IP address as the vSensor. It will automatically reregister with a vSensor directly.
+    type: string
+  ossensor-vsensor-cidr:
+    description: Configure firewall / routing to allow osSensors access to this CIDR.
+    type: string
