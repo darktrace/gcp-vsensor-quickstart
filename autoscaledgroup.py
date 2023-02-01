@@ -103,9 +103,8 @@ def GenerateConfig(context):
                           echo "Setting configuration"
                           #set updatekey, upgrade and enable daily updates
                           set_updatekey.sh {vsensor_update_key}
-                          # Allow osSensors to work via load balancer
-                          sudo sed -i --follow-symlinks "/\[[Ss]erver\]/a osSensorProvideRoute=true" /etc/sabreserver/local_lite.cfg
                           set_pushtoken.sh {appliance_push_token} {appliance_hostname}:{appliance_port}
+                          set_ossensor_loadbalancer_direct.sh 1 # Allow osSensors to work via load balancer
                           set_ephemeral.sh 1 # Configure vSensor for use in ASG.
                           sleep 5
                           if [ -n "{ossensor_hmac}" ]; then
