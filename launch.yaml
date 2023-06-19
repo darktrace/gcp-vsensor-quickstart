@@ -39,7 +39,7 @@ resources:
     bastion-enable: true
     bastion-subnet-cidr: 10.127.3.0/24 # Subnet range that the bastion will be deployed in (Not required if bastion-enable: false)
     bastion-external-cidr: 0.0.0.0/0 # IP range the bastion will accept SSH from (Not required if bastion-enable: false)
-    mig-subnet-cidr: 10.127.2.0/24 # Subnet range that the bastion will be deployed in (must not overlap with bastion or other subnets in VPC)
+    mig-subnet-cidr: 10.127.2.0/24 # Subnet range that the vSensors will be deployed in (must not overlap with bastion or other subnets in VPC)
     # Size of vSensor instances, choose:
     #   - Large enough that traffic spikes don't require large numbers of instances to be scaled up.
     #   - Small enough that low traffic (i.e. outside business hours) doesn't waste too much compute resources
