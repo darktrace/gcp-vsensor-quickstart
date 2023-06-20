@@ -33,6 +33,7 @@ def GenerateConfig(context):
     external_cidr_ranges = [gprop['bastion-external-cidr']]
     zone_1 = prefixURLCompute(context, 'zones/'+gprop['zone1'])
     zone_2 = prefixURLCompute(context, 'zones/'+gprop['zone2'])
+    username_sshkey = gprop['bastion-ssh-user-key'] if 'bastion-ssh-user-key' in gprop else None
 
     INSTANCE_TEMPLATE_NAME = name+'-template'
     SUBNET_NAME = name + '-subnet'
@@ -92,6 +93,15 @@ def GenerateConfig(context):
             }
         }
     }
+
+    if username_sshkey:
+        instance_template['properties']['properties']['metadata']['items'].append(
+            {
+                'key': 'ssh-keys',
+                'value': username_sshkey
+            }
+        )
+
     resources = [
         {
             'name': SUBNET_NAME,

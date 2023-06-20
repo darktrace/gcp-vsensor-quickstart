@@ -24,6 +24,7 @@ The GCP Darktrace vSensor Quick Start deploys the following:
 - (Optional) Load balancer frontend for osSensor support
 - IAM role assignments configuring storage bucket and GCP Ops Agent logging
 - Firewall rules for allowing traffic mirroring, external bastion access and SSH-in-browser via IAP
+- (Optional) User and public ssh key for ssh public key authentication
 
 ## Requirements
 
@@ -92,6 +93,8 @@ Setting the configured instance size, scaling counts, PCAP storage retention and
 
 Many regions have GCP Storage bucket support, whenever possible this Quick Start will pick this region to reduce PCAP data transfer costs.
 In cases where the vSensor region does not have an exact match with a GCP Storage region, this template will choose another as close as possible.
+
+The bastion (if enabled) and the vSensor can be configured optionally with user and ssh public key for ssh public key authentication using the `bastion-ssh-user-key` and the `mig-ssh-user-key` variables.
 
 Consider reviewing:
 - https://cloud.google.com/compute/vm-instance-pricing

@@ -2,7 +2,7 @@ info:
     title: Darktrace vSensor Quick Start for GCP
     author: Darktrace Holdings Ltd
     description: Creates an auto-scaling Darktrace vSensor deployment into a GCP region.
-    version: 1.0
+    version: 1.1
 
 imports:
   - path: launch.py
@@ -15,7 +15,6 @@ imports:
   - path: loadbalancer.py
 
 required:
-  - region
   - zone1
   - zone2
   - bastion-enable
@@ -30,10 +29,6 @@ required:
   - pcap-retention-time-days
 
 properties:
-  region:
-    type: string
-    default: europe-west2
-    description: Region to deploy the vSensor Quick Start in.
 
   existing-vpc-name:
     type: string
@@ -42,12 +37,12 @@ properties:
   zone1:
     type: string
     default: europe-west2-a
-    description: Availability Zone 1 to use for the vSensors. Two Availability Zones are used for this deployment.
+    description: Availability Zone 1 to use for the bastion/vSensors. Two Availability Zones are used for this deployment. Both zones must be in the same region.
 
   zone2:
     type: string
     default: europe-west2-b
-    description: Availability Zone 2 to use for the vSensors. Two Availability Zones are used for this deployment.
+    description: Availability Zone 2 to use for the bastion/vSensors. Two Availability Zones are used for this deployment. Both zones must be in the same region.
   
   bastion-enable:
     type: boolean
@@ -65,6 +60,12 @@ properties:
     pattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     default: 0.0.0.0/0
     description: CIDR IP range that is permitted to access the bastion hosts. We recommend that you set this value to a trusted IP range.
+
+  bastion-ssh-user-key:
+    type: string
+    # https://manpages.ubuntu.com/manpages/xenial/en/man8/useradd.8.html
+    pattern: ^[a-z0-9_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$):[A-Za-z0-9@_+/=\s-]+$
+    description: (Optional) SSH username and public key to be added to the bastion for ssh public key authentication. The format is 'USERNAME:SSH_PUBLIC_KEY' (https://cloud.google.com/compute/docs/connect/add-ssh-keys#add_ssh_keys_to_instance_metadata)
 
   mig-subnet-cidr:
     type: string
@@ -97,6 +98,12 @@ properties:
     maximum: 100
     default: 1
     description: Maximum number of vSensor instances in the Managed Instance Group.
+
+  mig-ssh-user-key:
+    type: string
+    # https://manpages.ubuntu.com/manpages/xenial/en/man8/useradd.8.html
+    pattern: ^[a-z0-9_]([a-z0-9_-]{0,31}|[a-z0-9_-]{0,30}\$):[A-Za-z0-9@_+/=\s-]+$
+    description: (Optional) SSH username and public key to be added to the vSensor for ssh public key authentication. The format is 'USERNAME:SSH_PUBLIC_KEY' (https://cloud.google.com/compute/docs/connect/add-ssh-keys#add_ssh_keys_to_instance_metadata)
 
   vsensor-update-key:
     type: string

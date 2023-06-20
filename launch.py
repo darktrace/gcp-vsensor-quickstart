@@ -35,6 +35,10 @@ def validation(context):
     if prop['bastion-enable'] and ('bastion-subnet-cidr' not in prop or 'bastion-external-cidr' not in prop):
         errors.append(
             'Bastion subnet and external IP CIDRs are required if bastion-enable is True.')
+    # europe-west2-a -> europe-west2
+    if prop['zone1'].rsplit('-',1)[0] != prop['zone2'].rsplit('-',1)[0]:
+        errors.append(
+            'Zone 1 and Zone 2 parameters are not within the same region.')
     if errors:
         raise Exception(
             'The deployment configuration has not passed validation:\n    - '+'\n    - '.join(errors))
@@ -56,6 +60,10 @@ def GenerateConfig(context):
 
     # Template properties
     prop = context.properties
+
+    # europe-west2-a -> europe-west2
+    prop['region'] = prop['zone1'].rsplit('-',1)[0]
+
     bastion_enable = prop['bastion-enable']
     mig_subnet_cidr = prop['mig-subnet-cidr']
     ossensor_lb_enable = 'ossensor-hmac' in prop and prop['ossensor-hmac'] != ''
@@ -151,7 +159,7 @@ def GenerateConfig(context):
             'properties': {
                 'httpsHealthCheck': {
                     'port': 443,
-                    'requestPath': '/',
+                    'requestPath': '/healthcheck',
                 },
                 'type': 'HTTPS'
             }

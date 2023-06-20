@@ -28,8 +28,7 @@ resources:
 - name: darktrace-vsensor-quick-start
   type: launch.py
   properties:
-    # Select the region and two zones from https://cloud.google.com/compute/docs/regions-zones
-    region: europe-west2
+    # Select two zones from the same region: https://cloud.google.com/compute/docs/regions-zones
     zone1: europe-west2-a
     zone2: europe-west2-b
     # (Optional) Provide an existing VPC name to deploy into, else one is created automatically.
@@ -39,6 +38,8 @@ resources:
     bastion-enable: true
     bastion-subnet-cidr: 10.127.3.0/24 # Subnet range that the bastion will be deployed in (Not required if bastion-enable: false)
     bastion-external-cidr: 0.0.0.0/0 # IP range the bastion will accept SSH from (Not required if bastion-enable: false)
+    # (Optional) bastion username and public ssh key for ssh pubic key authentication ('USERNAME:SSH_PUBLIC_KEY')
+    #bastion-ssh-user-key: 'john_s:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC7yCHj40vynyD5hks/HHBeI+nSw+RG488ORbhP4NZ5zBmFgvKgrPq1leEiUNBLmrkJ/xhN8QZjoubLrbhim4cRNbvSzCk6UkGdneYxMQ/H/3U/cOVW0QUMLRasp03EsZSC5dlLl4fa5R8cZlhaphlpDgM8vcmLjvtYJK586ommc9hCwc487+WxxU4JsJooqtFx3NmMXu+ytbdiPgsRyBb5TvC4tnV8EW8QPPGZZJXOj1OUdB/lh819+N3xllvIux+ZrQdegJqE2jd2vYRwY5BnnX5UbVZDyae2OwkV2mSupR5j6zRhQw1bhTMqN/xveJwPIiKBlZH02cv0p8pMXEUP john_s@host1'
     mig-subnet-cidr: 10.127.2.0/24 # Subnet range that the vSensors will be deployed in (must not overlap with bastion or other subnets in VPC)
     # Size of vSensor instances, choose:
     #   - Large enough that traffic spikes don't require large numbers of instances to be scaled up.
@@ -48,6 +49,8 @@ resources:
     #   - e2-standard-(2-8) https://cloud.google.com/compute/docs/general-purpose-machines#e2_machine_types
     #   - n2-standard-(8-32) https://cloud.google.com/compute/docs/general-purpose-machines#n2_machines
     mig-instance-type: e2-standard-2
+    # (Optional) vSensor username and public ssh key for ssh pubic key authentication ('USERNAME:SSH_PUBLIC_KEY')
+    #mig-ssh-user-key: 'joe_d:ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC4ht4nKlqEKq0h0kRsGLzCVA2yLg9nkPlDMlhthecjbuWttx26I3BCTeKCu0fi/CARfDY5WnCZ47XvWdP86gS1ZGXe0hBOcgzj2ynA2DZJNE70Tb+J6b8T8DyH3xQ8GT+EJ9BCAXPw2dYs0nf6eygVO5yvAOlY1JuEpNDThH/jMonVb/3Y0jwoawe4gaILApNkLMIlkpKI7mikxmAPNKk+SatdNSitb8p9tY5ueirEp+qmXYCHph5UloeI5K0xfSfpJY8mN1LQw806Koqt+O99p/0tvN+rc+T7bs9a3DTUUr3y+G0DWqbC/WzZRhMNO++n3ADV1tpnmivqHV0XNCYV joe_d@host2'
     # Min and max vSensor instance count, use this to control expected spending.
     mig-min-size: 1
     mig-max-size: 1

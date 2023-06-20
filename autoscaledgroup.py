@@ -46,6 +46,7 @@ def GenerateConfig(context):
     appliance_port = gprop['appliance-port']
     ossensor_hmac = gprop['ossensor-hmac'] if 'ossensor-hmac' in gprop else ''
     mig_subnet_cidr = gprop['mig-subnet-cidr']
+    username_sshkey = gprop['mig-ssh-user-key'] if 'mig-ssh-user-key' in gprop else None
 
     ossensor_lb_ip = GenerateOSSensorLBIP(mig_subnet_cidr)
 
@@ -131,6 +132,14 @@ EOF
             }
         }
     }
+
+    if username_sshkey:
+        instance_template['properties']['properties']['metadata']['items'].append(
+            {
+                'key': 'ssh-keys',
+                'value': username_sshkey
+            }
+        )
 
     resources = [
         {
