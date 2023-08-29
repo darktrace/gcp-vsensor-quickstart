@@ -45,14 +45,17 @@ logging:
                 - /var/log/bro/*
                 - /var/opt/bro/spool/manager/*
                 - /var/log/darktrace-*
-                - /var/log/user-data.log
                 - /var/log/inithooks.log
                 - /var/log/heka/*
                 - /var/log/redis/*
+        vsensor-userdata:
+            type: files
+            include_paths:
+                - /var/log/user-data.log
     service:
         pipelines:
             default_pipeline:
-                receivers: [vsensor-syslog,vsensor-updates,vsensor-services]
+                receivers: [vsensor-syslog,vsensor-updates,vsensor-services,vsensor-userdata]
 metrics:
     receivers:
         hostmetrics:

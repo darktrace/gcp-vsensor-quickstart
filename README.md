@@ -136,11 +136,14 @@ To configure packet mirroring, you must:
 
 Google Ops Agent is configured on the vSensors and bastion automatically to provide more detailed statistics including CPU, memory and bandwidth.
 
-It also provides [Log Explorer](https://console.cloud.google.com/logs/) logs in three 'Log Name' groups for supporting debugging:
+It also provides [Log Explorer](https://console.cloud.google.com/logs/) logs in four 'Log Name' groups for supporting debugging:
 - `vsensor-syslog` For general syslog logging.
 - `vsensor-updates` For logging from apt/dpkg package updating of the vSensor and OS packages.
 - `vsensor-services` For logging from the main vSensor product components.
+- `vsensor-userdata` For logging from the initial vSensor installation.
 
 ### Support
 
 Please use the [Darktrace Customer Portal](https://customerportal.darktrace.com) to request support in using this template.
+
+For issues during initial installation, provide any GCP Deployment Manager errors and `vsensor-userdata` (see previous section). 

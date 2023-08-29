@@ -98,32 +98,28 @@ def GenerateConfig(context):
                             'value': f"""
                           #! /bin/bash -xe
                           exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
-                          echo "Starting userdata"
-                          bash <(wget -O - https://packages.darktrace.com/install) --updateKey {vsensor_update_key}
-                          touch /etc/darktrace/.userdata-install-complete
-                          echo "Setting configuration"
-                          #set updatekey, upgrade and enable daily updates
-                          set_updatekey.sh {vsensor_update_key}
-                          set_pushtoken.sh {appliance_push_token} {appliance_hostname}:{appliance_port}
-                          set_ossensor_loadbalancer_direct.sh 1 # Allow osSensors to work via load balancer
-                          set_ephemeral.sh 1 # Configure vSensor for use in ASG.
-                          sleep 5
-                          if [ -n "{ossensor_hmac}" ]; then
-                            set_ossensor_hmac.sh {ossensor_hmac}
-                            sleep 5
-                            set_gcp_lb_ip.sh "{ossensor_lb_ip}"
-                          fi
-                          set_pcap_gcp_bucket.sh "{pcap_bucket_name}" "{service_account_email}"
-                          touch /etc/darktrace/.userdata-config-complete
-                          echo "Completed vSensor configuration"
+                          echo "Starting userdata, installing Cloud OPS agent for logging"
                           curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
                           bash add-google-cloud-ops-agent-repo.sh --also-install
                           cat >/etc/google-cloud-ops-agent/config.yaml <<EOF
                             {GCP_CLOUD_OPS_TEMPLATE}
 EOF
                           service google-cloud-ops-agent restart
-                          touch /etc/darktrace/.userdata-cloud-ops-complete
                           echo "Completed Google Cloud Ops Configuration"
+                          echo "Starting vSensor installation"
+                          bash <(wget -O - https://packages.darktrace.com/install) --updateKey {vsensor_update_key}
+                          echo "Setting configuration"
+                          #set updatekey, upgrade and enable daily updates
+                          set_updatekey.sh {vsensor_update_key}
+                          set_pushtoken.sh {appliance_push_token} {appliance_hostname}:{appliance_port}
+                          set_ossensor_loadbalancer_direct.sh 1 # Allow osSensors to work via load balancer
+                          set_ephemeral.sh 1 # Configure vSensor for use in ASG.
+                          if [ -n "{ossensor_hmac}" ]; then
+                            set_ossensor_hmac.sh {ossensor_hmac}
+                            set_gcp_lb_ip.sh "{ossensor_lb_ip}"
+                          fi
+                          set_pcap_gcp_bucket.sh "{pcap_bucket_name}" "{service_account_email}"
+                          echo "Completed vSensor configuration"
                         """
                         }
                         # autopep8: on
