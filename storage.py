@@ -18,75 +18,6 @@ the vSensor service account."""
 
 import re
 
-# Select a close storage bucket location for the selected compute region
-
-
-def CalculateClosestBucket(compute_region):
-    # https://cloud.google.com/storage/docs/locations
-    bucket_locations = [
-        'NORTHAMERICA-NORTHEAST1',
-        'NORTHAMERICA-NORTHEAST2',
-        'US-CENTRAL1',
-        'US-EAST1',
-        'US-EAST4',
-        'US-EAST5',
-        'US-SOUTH1',
-        'US-WEST1',
-        'US-WEST2',
-        'US-WEST3',
-        'US-WEST4',
-        'SOUTHAMERICA-EAST1',
-        'SOUTHAMERICA-WEST1',
-        'EUROPE-CENTRAL2',
-        'EUROPE-NORTH1',
-        'EUROPE-SOUTHWEST1',
-        'EUROPE-WEST1',
-        'EUROPE-WEST2',
-        'EUROPE-WEST3',
-        'EUROPE-WEST4',
-        'EUROPE-WEST6',
-        'EUROPE-WEST8',
-        'EUROPE-WEST9',
-        'ASIA-EAST1',
-        'ASIA-EAST2',
-        'ASIA-NORTHEAST1',
-        'ASIA-NORTHEAST2',
-        'ASIA-NORTHEAST3',
-        'ASIA-SOUTH1',
-        'ASIA-SOUTH2',
-        'ASIA-SOUTHEAST1',
-        'ASIA-SOUTHEAST2',
-        'ME-WEST1',
-        'AUSTRALIA-SOUTHEAST1',
-        'AUSTRALIA-SOUTHEAST2'
-    ]
-    compute_region = compute_region.upper()
-    if compute_region in bucket_locations:
-        return compute_region
-
-    # Remove numbers from compute region, e.g. "EUROPE-WEST" from "EUROPE-WEST2"
-    sub_region = re.sub(r'\d+', '', compute_region)
-
-    # Find all regions starting with the same sub region (e.g. returns a list of ["EUROPE-WEST1"...] for "EUROPE-WEST")
-    same_sub = list(
-        filter(lambda region: region.startswith(sub_region), bucket_locations))
-
-    # If we've got one in the valid list of bucket URLS, pick that
-    if len(same_sub) > 0:
-        return same_sub[0]
-
-    # They don't support storage in this sub region, go to the next major region (e.g. EUROPE) and pick from options there
-    same_major = list(filter(lambda region: region.startswith(
-        sub_region.split('-', 1)[0]), bucket_locations))
-
-    # If we've got one in the valid list of bucket URLS, pick that
-    if len(same_major) > 0:
-        return same_major[0]
-
-    # This region doesn't have any bucket storage location. Pick one with the cheaper standard storage.
-    return 'US-CENTRAL1'
-
-
 def GenerateConfig(context):
     """Generates YAML resource configuration."""
 
@@ -133,7 +64,7 @@ def GenerateConfig(context):
                         'enabled': True
                     }
                 },
-                'location': CalculateClosestBucket(region),
+                'location': region,
                 'lifecycle': {
                     'rule': [
                         {
