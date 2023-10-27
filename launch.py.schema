@@ -136,9 +136,9 @@ properties:
 
   pcap-retention-time-days:
     type: integer
-    minimum: 1
+    minimum: 0
     default: 7
-    description: Captured packets storage retention (days), longer retention will increase storage costs.
+    description: Captured packets storage retention (days), longer retention will increase storage costs. Set to 0 to disable PCAPs and Storage bucket.
 
   
 outputs:

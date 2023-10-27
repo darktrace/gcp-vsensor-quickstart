@@ -68,6 +68,8 @@ def GenerateConfig(context):
     mig_subnet_cidr = prop['mig-subnet-cidr']
     ossensor_lb_enable = 'ossensor-hmac' in prop and prop['ossensor-hmac'] != ''
 
+    pcap_storage_enable = prop['pcap-retention-time-days'] != 0
+
     HEALTHCHECK_NAME = name + '-healthcheck'
     NETWORK_TEMPLATE_NAME = name + '-net'
     MIG_TEMPLATE_NAME = name + '-vsensor-mig'
@@ -91,22 +93,15 @@ def GenerateConfig(context):
             'properties': {
                 'accountId': service_account_id,
                 'displayName': 'Darktrace vSensor Quickstart',
-                'description': 'Allows Darktrace vSensors to read/write PCAPs to Storage Bucket'
+                'description': 'Allows permission to Darktrace vSensors for logging/monitoring and to read/write PCAPs to Storage Bucket (if enabled).'
             }
         },
-        # Give vSensor service account permissions to manage storage keys and Ops Agent logging/metrics.
+        # Give vSensor service account permissions for Ops Agent logging/metrics.
         {
             'name': service_account_id + '-iam',
             'type': 'iam_member.py',
             'properties': {
                 'roles': [{
-                    'role': 'roles/storage.hmacKeyAdmin',
-                    'members': [
-                        'serviceAccount:$(ref.{}.email)'.format(
-                            service_account_id)
-                    ]
-                },
-                    {
                     'role': 'roles/monitoring.metricWriter',
                     'members': [
                         'serviceAccount:$(ref.{}.email)'.format(
@@ -120,22 +115,6 @@ def GenerateConfig(context):
                             service_account_id)
                     ],
                 }]
-            }
-        },
-        # Create a Storage Bucket to permanently store PCAPS across vSensor scaling
-        {
-            'name': STORAGE_TEMPLATE_NAME,
-            'type': 'storage.py',
-            'properties': {
-                'vpc-ref': getRef(NETWORK_TEMPLATE_NAME, 'vpc-ref'),
-                'global': prop,
-                'service-account-email': getRef(service_account_id, 'email'),
-                'deployment-hash': deployment_hash
-            },
-            'metadata': {
-                'dependsOn': [
-                    MIG_TEMPLATE_NAME
-                ]
             }
         },
         # Generate an Autoscaling Managed Instance Group containing vSensors.
@@ -165,6 +144,39 @@ def GenerateConfig(context):
             }
         },
     ]
+    if pcap_storage_enable:
+        resources.extend([
+            # Give vSensor service account permissions to manage storage keys.
+            {
+                'name': service_account_id + '-iam-pcaps',
+                'type': 'iam_member.py',
+                'properties': {
+                    'roles': [{
+                        'role': 'roles/storage.hmacKeyAdmin',
+                        'members': [
+                            'serviceAccount:$(ref.{}.email)'.format(
+                                service_account_id)
+                        ]
+                    }]
+                }
+            },
+            # Create a Storage Bucket to permanently store PCAPS across vSensor scaling
+            {
+                'name': STORAGE_TEMPLATE_NAME,
+                'type': 'storage.py',
+                'properties': {
+                    'vpc-ref': getRef(NETWORK_TEMPLATE_NAME, 'vpc-ref'),
+                    'global': prop,
+                    'service-account-email': getRef(service_account_id, 'email'),
+                    'deployment-hash': deployment_hash
+                },
+                'metadata': {
+                    'dependsOn': [
+                        MIG_TEMPLATE_NAME
+                    ]
+                }
+            }]
+        )
     # Optionally configure a Bastion host to allow external access to the vSensors.
     bastion_subnet_ref = None
     if bastion_enable:
@@ -207,14 +219,17 @@ def GenerateConfig(context):
             'value': getRef(NETWORK_TEMPLATE_NAME, 'nat-ip')
         },
         {
-            'name': 'pcap-bucket-name',
-            'value': getRef(STORAGE_TEMPLATE_NAME, 'bucket-name')
-        },
-        {
             'name': 'vsensor-subnet-name',
             'value': getRef(NETWORK_TEMPLATE_NAME, 'subnet-name')
         }
     ]
+    if pcap_storage_enable:
+        outputs.extend([
+            {
+                'name': 'pcap-bucket-name',
+                'value': getRef(STORAGE_TEMPLATE_NAME, 'bucket-name')
+            }
+        ])
     if bastion_enable:
         outputs.extend([
             {

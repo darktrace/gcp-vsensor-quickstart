@@ -170,7 +170,7 @@ def GenerateConfig(context):
         },
         {
             'name': name + '-mig',
-            'type': 'compute.v1.regionInstanceGroupManagers',
+            'type': 'compute.v1.regionInstanceGroupManager',
             'properties': {
                 'description': 'Managed Instance Group for Bastion in vSensor Quickstart.',
                 'project': project,

@@ -31,7 +31,8 @@ def GenerateConfig(context):
     subnet_ref = prop['subnet-ref']
     health_check_name = prop['healthcheck-name']
     service_account_email = prop['service-account-email']
-    pcap_bucket_name = prop['pcap-bucket-name']
+    # GCP detects this as a dependency, so remove dependency if PCAP storage should be disabled
+    pcap_bucket_name = prop['pcap-bucket-name'] if (gprop['pcap-retention-time-days'] != 0) else ""
 
     zone_1 = prefixURLCompute(context, 'zones/'+gprop['zone1'])
     zone_2 = prefixURLCompute(context, 'zones/'+gprop['zone2'])
@@ -97,7 +98,21 @@ def GenerateConfig(context):
                             'key': 'startup-script',
                             'value': f"""
                           #! /bin/bash -xe
+                          function exittrap() {{
+                            exitcode="$?"
+                            set +e
+                            if [ "$exitcode" -gt 0 ]; then
+                                echo "Failed to successfully configure vSensor, more details in /var/log/user-data.log"
+                                all-services.sh -f nginx stop
+                                echo "Instance marked as unhealthy."
+                            fi
+                            exit "$exitcode"
+                          }}
+
                           exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+
+                          trap exittrap EXIT
+                          
                           echo "Starting userdata, installing Cloud OPS agent for logging"
                           curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
                           bash add-google-cloud-ops-agent-repo.sh --also-install
@@ -118,7 +133,11 @@ EOF
                             set_ossensor_hmac.sh {ossensor_hmac}
                             set_gcp_lb_ip.sh "{ossensor_lb_ip}"
                           fi
-                          set_pcap_gcp_bucket.sh "{pcap_bucket_name}" "{service_account_email}"
+                          if [ -n "{pcap_bucket_name}" ]; then
+                            set_pcap_gcp_bucket.sh "{pcap_bucket_name}" "{service_account_email}"
+                          else
+                            set_pcap_size.sh 0
+                          fi
                           echo "Completed vSensor configuration"
                         """
                         }
@@ -129,6 +148,15 @@ EOF
         }
     }
 
+    # Because pcap_bucket_name is optional above, it doesn't detect the dependency implicitly.
+    # Add it explicitly here. This gets appended to the implict ones for the VPC, Subnet and Service Account.
+    if pcap_bucket_name:
+        instance_template['metadata'] = {
+            'dependsOn': [
+                pcap_bucket_name
+            ]
+        }
+
     if username_sshkey:
         instance_template['properties']['properties']['metadata']['items'].append(
             {
@@ -137,10 +165,11 @@ EOF
             }
         )
 
+    # Use BETA for minReadySec: https://cloud.google.com/compute/docs/reference/rest/beta/instanceGroupManagers
     resources = [
         {
             'name': MIG_NAME,
-            'type': 'compute.v1.regionInstanceGroupManagers',
+            'type': 'compute.beta.regionInstanceGroupManager',
             'properties': {
                 'description': 'Managed Instance Group for Darktrace vSensor.',
                 'project': project,
@@ -160,7 +189,9 @@ EOF
                 'baseInstanceName': BASE_NAME,
                 'instanceTemplate': getRef(INSTANCE_TEMPLATE_NAME),
                 'updatePolicy': {
-                    'type': 'PROACTIVE'
+                    'type': 'PROACTIVE',
+                    'minimalAction': 'REPLACE',
+                    'minReadySec': 180
                 },
                 'autoHealingPolicies': [
                     {

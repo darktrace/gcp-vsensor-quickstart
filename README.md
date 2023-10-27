@@ -18,11 +18,11 @@ The GCP Darktrace vSensor Quick Start deploys the following:
 - A Subnet for containing the internal vSensors
 - A Cloud Router to provide vSensors with appliance / update connectivity
 - A Managed Instance Group containing vSensors with predictive autoscaling
-- A GCP Storage bucket for storing PCAPS for later analysis
+- (Optional) A GCP Storage bucket for storing PCAPS for later analysis
 - (Optional) A Bastion subnet and host for allowing external access to the vSensors
-- An Internal TCP Load balancer with automatic Packet Mirroring for the Bastion.
+- An Internal TCP Load balancer with automatic Packet Mirroring for the Bastion
 - (Optional) Load balancer frontend for osSensor support
-- IAM role assignments configuring storage bucket and GCP Ops Agent logging
+- IAM role assignments configuring GCP Ops Agent logging and (optionally) storage bucket
 - Firewall rules for allowing traffic mirroring, external bastion access and SSH-in-browser via IAP
 - (Optional) User and public ssh key for ssh public key authentication
 
@@ -78,7 +78,7 @@ The deployment can be deleted with:
 `gcloud deployment-manager deployments delete <YOUR_DEPLOYMENT_NAME>`
 
 **Please note, deleting the deployment requires:**
-- removing temporary holds and retention settings to empty the PCAP bucket
+- removing temporary holds on files in the `keys` directory and retention settings to empty the PCAP bucket
 - removing any additional packet mirroring sessions and frontend (forwarding rules) created outside the template
 
 ### Configuration Options
