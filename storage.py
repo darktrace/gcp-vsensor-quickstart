@@ -18,114 +18,90 @@ the vSensor service account."""
 
 import re
 
+
 def GenerateConfig(context):
     """Generates YAML resource configuration."""
 
-    name = context.env['name']
-    project = context.env['project']
+    name = context.env["name"]
+    project = context.env["project"]
 
     prop = context.properties
-    gprop = prop['global']
+    gprop = prop["global"]
 
-    region = gprop['region']
-    service_account_email = prop['service-account-email']
-    deployment_hash = prop['deployment-hash']
+    region = gprop["region"]
+    service_account_email = prop["service-account-email"]
+    deployment_hash = prop["deployment-hash"]
 
-    retention_time_days = gprop['pcap-retention-time-days']
+    retention_time_days = gprop["pcap-retention-time-days"]
     retention_time_secs = retention_time_days * 24 * 60 * 60
 
-    BUCKET_NAME = name + '-bucket'
-    IAM_ROLE_NAME = deployment_hash + '_vsensor_storage'
+    BUCKET_NAME = name + "-bucket"
+    IAM_ROLE_NAME = deployment_hash + "_vsensor_storage"
 
     resources = [
         {
-            'name': IAM_ROLE_NAME,
-            'type': 'gcp-types/iam-v1:projects.roles',
-            'properties': {
-                'parent': 'projects/'+project,
-                'roleId': IAM_ROLE_NAME,
-                'role': {
-                    'title': 'vSensor IAM Role',
-                    'description': 'Gives the vSensor permission to check the GCP bucket is private before use.',
-                    'includedPermissions': [
-                        'storage.buckets.get'
-                    ],
-                    'stage': 'GA'
-                }
-            }
+            "name": IAM_ROLE_NAME,
+            "type": "gcp-types/iam-v1:projects.roles",
+            "properties": {
+                "parent": "projects/" + project,
+                "roleId": IAM_ROLE_NAME,
+                "role": {
+                    "title": "vSensor IAM Role",
+                    "description": "Gives the vSensor permission to check the GCP bucket is private before use.",
+                    "includedPermissions": ["storage.buckets.get"],
+                    "stage": "GA",
+                },
+            },
         },
         {
-            'name': BUCKET_NAME,
-            'type': 'storage.v1.bucket',
-            'properties': {
-                'iamConfiguration': {
-                    'publicAccessPrevention': 'enforced',
-                    'uniformBucketLevelAccess': {
-                        'enabled': True
-                    }
+            "name": BUCKET_NAME,
+            "type": "storage.v1.bucket",
+            "properties": {
+                "iamConfiguration": {
+                    "publicAccessPrevention": "enforced",
+                    "uniformBucketLevelAccess": {"enabled": True},
                 },
-                'location': region,
-                'lifecycle': {
-                    'rule': [
+                "location": region,
+                "lifecycle": {
+                    "rule": [
                         {
-                            'action': {'type': 'Delete'},
-                            'condition': {
-                                'age': retention_time_days
-                            }
-                        }]
+                            "action": {"type": "Delete"},
+                            "condition": {"age": retention_time_days},
+                        }
+                    ]
                 },
-                'retentionPolicy': {
-                    'retentionPeriod': retention_time_secs
-                },
-                'storageClass': 'STANDARD',
-
+                "retentionPolicy": {"retentionPeriod": retention_time_secs},
+                "storageClass": "STANDARD",
             },
-            'accessControl': {
-                'gcpIamPolicy': {
-                    'bindings': [
+            "accessControl": {
+                "gcpIamPolicy": {
+                    "bindings": [
                         {
-                            'role': 'roles/storage.objectAdmin',
-                            'members': [
-                                'serviceAccount:' +
-                                service_account_email
-                            ]
+                            "role": "roles/storage.objectAdmin",
+                            "members": ["serviceAccount:" + service_account_email],
                         },
                         {
                             # https://cloud.google.com/storage/docs/access-control/iam#convenience-values
                             # Allow the project owner to be able to delete the deployment/bucket again.
                             # If this is removed, the owner cannot read/modify the bucket.
-                            'role': 'roles/storage.legacyBucketOwner',
-                            'members': [
-                                'projectOwner:' +
-                                project
-                            ]
+                            "role": "roles/storage.legacyBucketOwner",
+                            "members": ["projectOwner:" + project],
                         },
                         {
                             # If this is removed, the owner cannot manage storage holds to delete keys.
-                            'role': 'roles/storage.objectAdmin',
-                            'members': [
-                                'projectOwner:' +
-                                project
-                            ]
+                            "role": "roles/storage.objectAdmin",
+                            "members": ["projectOwner:" + project],
                         },
                         {
-                            'role': f'projects/{project}/roles/{IAM_ROLE_NAME}',
-                            'members': [
-                                'serviceAccount:' +
-                                service_account_email
-                            ]
+                            "role": f"projects/{project}/roles/{IAM_ROLE_NAME}",
+                            "members": ["serviceAccount:" + service_account_email],
                         },
                     ]
                 }
-            }
-        }
+            },
+        },
     ]
 
-    outputs = [
-        {
-            'name': 'bucket-name',
-            'value': BUCKET_NAME
-        }
-    ]
+    outputs = [{"name": "bucket-name", "value": BUCKET_NAME}]
 
-    return {'resources': resources, 'outputs': outputs}
+    return {"resources": resources, "outputs": outputs}

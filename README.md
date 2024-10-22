@@ -4,7 +4,7 @@
 
 This Quick Start deploys Darktrace vSensor virtual threat detection on Google Cloud Platform. Instead of relying on flow logs, Darktrace probes analyze raw data from mirrored virtual private cloud (VPC) traffic to learn to identify threats. This guide covers the steps necessary to deploy this Quick Start.
 
-GCP Virtual Private Cloud (VPC) traffic mirroring copies traffic from Computing Engine instances you want to monitor. A Load Balancer distributes mirrored traffic to Darktrace vSensor probes in a private subnet. The deployment also supports sending data to vSensors from Darktrace osSensors you configure on virtual machines and containerized applications.
+GCP Virtual Private Cloud (VPC) Packet Mirroring copies traffic from Computing Engine instances you want to monitor. A Load Balancer distributes mirrored traffic to Darktrace vSensor probes in a private subnet. The deployment also supports sending data to vSensors from Darktrace osSensors you configure on virtual machines and containerized applications.
 
 Darktrace vSensor stores PCAP data from mirrored traffic and stores it in a Google Storage bucket for later recall from the Threat Visualizer.
 
@@ -21,9 +21,11 @@ The GCP Darktrace vSensor Quick Start deploys the following:
 - (Optional) A GCP Storage bucket for storing PCAPS for later analysis
 - (Optional) A Bastion subnet and host for allowing external access to the vSensors
 - An Internal TCP Load balancer with automatic Packet Mirroring for the Bastion
+- Load balancer frontend as a Packet Mirroring Collector
+- (Optional) Packet Mirroring policies for existing subnets
 - (Optional) Load balancer frontend for osSensor support
 - IAM role assignments configuring GCP Ops Agent logging and (optionally) storage bucket
-- Firewall rules for allowing traffic mirroring, external bastion access and SSH-in-browser via IAP
+- Firewall rules for allowing packet mirroring, external bastion access and SSH-in-browser via IAP
 - (Optional) User and public ssh key for ssh public key authentication
 
 ## Requirements
@@ -96,6 +98,10 @@ In cases where the vSensor region does not have an exact match with a GCP Storag
 
 The bastion (if enabled) and the vSensor can be configured optionally with user and ssh public key for ssh public key authentication using the `bastion-ssh-user-key` and the `mig-ssh-user-key` variables.
 
+Packet mirroring can be configured for existing subnets in an existing VPC you are deploying into. Provide subnet names comma separated in the `subnets-to-mirror` variable.
+
+If you wish to allow traffic mirroring of IPv6 traffic from subnets or hosts, set `ipv6-enable` true. The same packet mirror collector is used for both IPv4 and IPv6.
+
 Consider reviewing:
 - https://cloud.google.com/compute/vm-instance-pricing
 - https://cloud.google.com/storage/pricing
@@ -112,7 +118,7 @@ Once deployment has been successfully completed:
 
 ### Template Outputs
 
-This deployment template provides outputs to ease configuration of osSensors and traffic mirroring. These can be accessed by:
+This deployment template provides outputs to ease configuration of osSensors and packet mirroring. These can be accessed by:
 
 - Go to [Deployment Mananger](https://console.cloud.google.com/dm/deployments/) in the GCP Console.
 - Clicking on the deployment name.
@@ -128,9 +134,9 @@ These outputs include:
 
 ### Packet Mirroring
 
-To configure packet mirroring, you must:
-- Configure the [load balancer](https://console.cloud.google.com/net-services/loadbalancing/list/loadBalancers) to add further Frontend subnets.
-- Create a [packet mirroring policy](https://console.cloud.google.com/networking/packetmirroring) connected to the load balancer.
+To configure packet mirroring sessions extra to the `subnets-to-mirror` defined above, you must create a further [packet mirroring policy](https://console.cloud.google.com/networking/packetmirroring) to the provided packet mirror collector.
+
+** NOTE: ** IPv6 support (if enabled above) also requires the packet filter to be changed during the policy creation to allow IPv6 traffic.
 
 ### Logging / Metrics
 

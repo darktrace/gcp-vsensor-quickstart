@@ -18,7 +18,7 @@
 import ipaddress
 
 # URL constants
-COMPUTE_URL_BASE = 'https://www.googleapis.com/compute/v1/'
+COMPUTE_URL_BASE = "https://www.googleapis.com/compute/v1/"
 
 # autopep8: off
 GCP_CLOUD_OPS_TEMPLATE = """
@@ -74,20 +74,37 @@ metrics:
 # autopep8: on
 
 
-def getRef(resource, output='selfLink'):
-    return '$(ref.{}.{})'.format(resource, output)
+def getRef(resource, output="selfLink"):
+    return "$(ref.{}.{})".format(resource, output)
 
 
 def prefixURLCompute(context, path, prefix_project=True):
-    project_name = context.env['project']
+    project_name = context.env["project"]
     if prefix_project:
-        return ''.join([COMPUTE_URL_BASE, 'projects/', project_name, '/', path])
+        return "".join([COMPUTE_URL_BASE, "projects/", project_name, "/", path])
     return COMPUTE_URL_BASE + path
 
 
 def GlobalComputeLink(project, collection, name):
-    return ''.join([COMPUTE_URL_BASE, 'projects/', project, '/global/',
-                    collection, '/', name])
+    return "".join(
+        [COMPUTE_URL_BASE, "projects/", project, "/global/", collection, "/", name]
+    )
+
+
+def RegionComputeLink(project, collection, name, region):
+    return "".join(
+        [
+            COMPUTE_URL_BASE,
+            "projects/",
+            project,
+            "/regions/",
+            region,
+            "/",
+            collection,
+            "/",
+            name,
+        ]
+    )
 
 
 def GenerateOSSensorLBIP(cidr_range):
