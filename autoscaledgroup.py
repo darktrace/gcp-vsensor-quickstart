@@ -61,55 +61,59 @@ def GenerateConfig(context):
     BASE_NAME = name + "-vsensor"
     MIG_NAME = name + "-group"
     INSTANCE_TEMPLATE_NAME = name + "-template"
+    INSTANCE_TEMPLATE_V2_NAME = INSTANCE_TEMPLATE_NAME + "-v2"
 
     # https://cloud.google.com/compute/docs/reference/rest/v1/instanceTemplates/insert
 
-    instance_template = {
-        "name": INSTANCE_TEMPLATE_NAME,
-        "type": "compute.v1.instanceTemplate",
-        "properties": {
+    def instance_template_factory(name, image):
+        return {
+            "name": name,
+            "type": "compute.v1.instanceTemplate",
             "properties": {
-                "machineType": instance_type,
-                "tags": {"items": ["darktrace-vsensor-mirroring", "darktrace-ssh-iap"]},
-                "disks": [
-                    {
-                        "deviceName": "boot",
-                        "type": "PERSISTENT",
-                        "boot": True,
-                        "autoDelete": True,
-                        "initializeParams": {
-                            "sourceImage": prefixURLCompute(
-                                context,
-                                "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts",
-                                False,
-                            ),
-                            "diskSizeGb": 20,
-                            "diskType": "pd-balanced",
-                            "labels": {"darktrace-vsensor": "true"},
-                        },
-                    }
-                ],
-                "networkInterfaces": [
-                    {
-                        "network": vpc_ref,
-                        "subnetwork": subnet_ref,
-                        "stackType": "IPV4_IPV6" if ipv6 else "IPV4_ONLY",
-                    }
-                ],
-                "canIpForward": True,  # Allow RESPOND/Network packets,
-                "serviceAccounts": [
-                    {
-                        "email": service_account_email,
-                        # Sets scope at the service account level, rather than at the instance level.
-                        "scopes": ["https://www.googleapis.com/auth/cloud-platform"],
-                    }
-                ],
-                "metadata": {
-                    "items": [
-                        # autopep8: off
+                "properties": {
+                    "machineType": instance_type,
+                    "tags": {
+                        "items": ["darktrace-vsensor-mirroring", "darktrace-ssh-iap"]
+                    },
+                    "disks": [
                         {
-                            "key": "startup-script",
-                            "value": f"""
+                            "deviceName": "boot",
+                            "type": "PERSISTENT",
+                            "boot": True,
+                            "autoDelete": True,
+                            "initializeParams": {
+                                "sourceImage": prefixURLCompute(context, image, False),
+                                "diskSizeGb": 20,
+                                "diskType": "pd-balanced",
+                                "labels": {"darktrace-vsensor": "true"},
+                            },
+                        }
+                    ],
+                    "networkInterfaces": [
+                        {
+                            "network": vpc_ref,
+                            "subnetwork": subnet_ref,
+                            "stackType": "IPV4_IPV6" if ipv6 else "IPV4_ONLY",
+                        }
+                    ],
+                    "canIpForward": True,  # Allow RESPOND/Network packets,
+                    "serviceAccounts": [
+                        {
+                            "email": service_account_email,
+                            # Sets scope at the service account level, rather than at the instance level.
+                            "scopes": [
+                                "https://www.googleapis.com/auth/cloud-platform"
+                            ],
+                        }
+                    ],
+                    "metadata": {
+                        "items": [
+                            # Do not adjust the indentation of the script contents! Instance templates are
+                            # immutable, so adjusting the whitespace will cause deployment updates to fail.
+                            # autopep8: off
+                            {
+                                "key": "startup-script",
+                                "value": f"""
                           #! /bin/bash -xe
                           function exittrap() {{
                             exitcode="$?"
@@ -153,23 +157,41 @@ EOF
                           fi
                           echo "Completed vSensor configuration"
                         """,
-                        }
-                        # autopep8: on
-                    ]
-                },
-            }
-        },
-    }
+                            }
+                            # autopep8: on
+                        ]
+                    },
+                }
+            },
+        }
+
+    instance_templates = [
+        instance_template_factory(
+            INSTANCE_TEMPLATE_V2_NAME,
+            "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts-amd64",
+        )
+    ]
+
+    # We need to keep this around during Focal->Noble upgrade because instance templates are immutable.
+    # Effectively we make a new template, then switch the MIG to use the new one, then in a separate update remove the old one.
+    if gprop.get("vsensor-63-upgrade-in-progress", False):
+        instance_templates.append(
+            instance_template_factory(
+                INSTANCE_TEMPLATE_NAME,
+                "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts",
+            )
+        )
 
     # Because pcap_bucket_name is optional above, it doesn't detect the dependency implicitly.
     # Add it explicitly here. This gets appended to the implict ones for the VPC, Subnet and Service Account.
-    if pcap_bucket_name:
-        instance_template["metadata"] = {"dependsOn": [pcap_bucket_name]}
+    for instance_template in instance_templates:
+        if pcap_bucket_name:
+            instance_template["metadata"] = {"dependsOn": [pcap_bucket_name]}
 
-    if username_sshkey:
-        instance_template["properties"]["properties"]["metadata"]["items"].append(
-            {"key": "ssh-keys", "value": username_sshkey}
-        )
+        if username_sshkey:
+            instance_template["properties"]["properties"]["metadata"]["items"].append(
+                {"key": "ssh-keys", "value": username_sshkey}
+            )
 
     # Use BETA for minReadySec: https://cloud.google.com/compute/docs/reference/rest/beta/instanceGroupManagers
     resources = [
@@ -184,14 +206,14 @@ EOF
                 # Initial spin up only one vSensor, it will setup the shared storage HMAC key before any others scale up for load.
                 "targetSize": 1,
                 "baseInstanceName": BASE_NAME,
-                "instanceTemplate": getRef(INSTANCE_TEMPLATE_NAME),
+                "instanceTemplate": getRef(INSTANCE_TEMPLATE_V2_NAME),
                 "updatePolicy": {
                     "type": "PROACTIVE",
                     "minimalAction": "REPLACE",
                     "minReadySec": 180,
                 },
                 "autoHealingPolicies": [
-                    {"healthCheck": getRef(health_check_name), "initialDelaySec": 300}
+                    {"healthCheck": getRef(health_check_name), "initialDelaySec": 600}
                 ],
             },
             "metadata": {"dependsOn": [health_check_name]},
@@ -219,7 +241,7 @@ EOF
             },
         },
     ]
-    resources.append(instance_template)
+    resources.extend(instance_templates)
 
     outputs = [
         {"name": "mig-name", "value": MIG_NAME},

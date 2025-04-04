@@ -40,10 +40,12 @@ logging:
             type: files
             include_paths:
                 - /var/log/sabreserver/*
-                - /var/log/darktrace-sabre-mole/manager.log
+                - /var/log/rs-tunnels/*.log
                 - /var/log/nginx/access.log
-                - /var/log/bro/*
-                - /var/opt/bro/spool/manager/*
+                - /var/opt/bro/spool/manager/stdout.log
+                - /var/opt/bro/spool/manager/stderr.log
+                - /var/opt/bro/spool/tmp/*/.crash-diag.out
+                - /var/log/chronicle/*.log
                 - /var/log/darktrace-*
                 - /var/log/inithooks.log
                 - /var/log/heka/*

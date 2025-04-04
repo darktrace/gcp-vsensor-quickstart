@@ -38,75 +38,95 @@ def GenerateConfig(context):
     )
 
     INSTANCE_TEMPLATE_NAME = name + "-template"
+    INSTANCE_TEMPLATE_V2_NAME = INSTANCE_TEMPLATE_NAME + "-v2"
     SUBNET_NAME = name + "-subnet"
 
     # https://cloud.google.com/compute/docs/reference/rest/v1/instanceTemplates/insert
-    instance_template = {
-        "name": INSTANCE_TEMPLATE_NAME,
-        "type": "compute.v1.instanceTemplate",
-        "properties": {
+    def make_template(name, image):
+        return {
+            "name": name,
+            "type": "compute.v1.instanceTemplate",
             "properties": {
-                "items": ["darktrace-vsensor-bastion", "darktrace-ssh-iap"],
-                "machineType": "e2-micro",
-                "disks": [
-                    {
-                        "deviceName": "boot",
-                        "type": "PERSISTENT",
-                        "boot": True,
-                        "autoDelete": True,
-                        "initializeParams": {
-                            "sourceImage": prefixURLCompute(
-                                context,
-                                "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts",
-                                False,
-                            ),
-                            "diskSizeGb": 10,
-                            "diskType": "pd-standard",
-                        },
-                    }
-                ],
-                "networkInterfaces": [
-                    {
-                        "network": vpc_ref,
-                        "subnetwork": getRef(SUBNET_NAME),
-                        "accessConfigs": [
-                            {
-                                "name": "External NAT",
-                                "type": "ONE_TO_ONE_NAT",
-                                "networkTier": "PREMIUM",
-                            }
-                        ],
-                    }
-                ],
-                "serviceAccounts": [
-                    {
-                        "email": getRef(service_account_id, "email"),
-                        # Sets scope at the service account level, rather than at the instance level.
-                        "scopes": ["https://www.googleapis.com/auth/cloud-platform"],
-                    }
-                ],
-                "metadata": {
-                    "items": [
+                "properties": {
+                    "items": ["darktrace-vsensor-bastion", "darktrace-ssh-iap"],
+                    "machineType": "e2-micro",
+                    "disks": [
                         {
-                            "key": "startup-script",
-                            "value": """
+                            "deviceName": "boot",
+                            "type": "PERSISTENT",
+                            "boot": True,
+                            "autoDelete": True,
+                            "initializeParams": {
+                                "sourceImage": prefixURLCompute(context, image, False),
+                                "diskSizeGb": 10,
+                                "diskType": "pd-standard",
+                            },
+                        }
+                    ],
+                    "networkInterfaces": [
+                        {
+                            "network": vpc_ref,
+                            "subnetwork": getRef(SUBNET_NAME),
+                            "accessConfigs": [
+                                {
+                                    "name": "External NAT",
+                                    "type": "ONE_TO_ONE_NAT",
+                                    "networkTier": "PREMIUM",
+                                }
+                            ],
+                        }
+                    ],
+                    "serviceAccounts": [
+                        {
+                            "email": getRef(service_account_id, "email"),
+                            # Sets scope at the service account level, rather than at the instance level.
+                            "scopes": [
+                                "https://www.googleapis.com/auth/cloud-platform"
+                            ],
+                        }
+                    ],
+                    "metadata": {
+                        "items": [
+                            {
+                                "key": "startup-script",
+                                # Do not adjust the indentation of the script contents! Instance templates are
+                                # immutable, so adjusting the whitespace will cause deployment updates to fail.
+                                "value": """
                                 #! /bin/bash -xe
                                 exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
                                 echo "Installing Monitoring Agent"
                                 curl -sSO https://dl.google.com/cloudagents/add-google-cloud-ops-agent-repo.sh
                                 bash add-google-cloud-ops-agent-repo.sh --also-install
-                            """,
-                        }
-                    ]
-                },
-            }
-        },
-    }
+                                """,
+                            }
+                        ]
+                    },
+                }
+            },
+        }
 
-    if username_sshkey:
-        instance_template["properties"]["properties"]["metadata"]["items"].append(
-            {"key": "ssh-keys", "value": username_sshkey}
+    instance_templates = [
+        make_template(
+            INSTANCE_TEMPLATE_V2_NAME,
+            "projects/ubuntu-os-cloud/global/images/family/ubuntu-minimal-2404-lts-amd64",
         )
+    ]
+
+    # We need to keep this around during Focal->Noble upgrade because instance templates are immutable.
+    # Effectively we make a new template, then switch the MIG to use the new one, then in a separate update remove the old one.
+    if gprop.get("vsensor-63-upgrade-in-progress", False):
+        instance_templates.append(
+            make_template(
+                INSTANCE_TEMPLATE_NAME,
+                "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts",
+            )
+        )
+
+    for instance_template in instance_templates:
+        if username_sshkey:
+            instance_template["properties"]["properties"]["metadata"]["items"].append(
+                {"key": "ssh-keys", "value": username_sshkey}
+            )
 
     resources = [
         {
@@ -177,12 +197,12 @@ def GenerateConfig(context):
                 "region": region,
                 "targetSize": 1,
                 "baseInstanceName": name + "-vm",
-                "instanceTemplate": getRef(INSTANCE_TEMPLATE_NAME),
+                "instanceTemplate": getRef(INSTANCE_TEMPLATE_V2_NAME),
                 "updatePolicy": {"type": "PROACTIVE"},
             },
         },
     ]
-    resources.append(instance_template)
+    resources.extend(instance_templates)
 
     outputs = [
         {"name": "subnet-ref", "value": getRef(SUBNET_NAME)},

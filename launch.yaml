@@ -62,3 +62,7 @@ resources:
     # (Optional) Configures vSensors and load balancer for osSensors to mirror traffic via this HMAC token.
     ossensor-hmac: randomstringofcharacters
     pcap-retention-time-days: 30 # How long GCP Storage should keep PCAP data for recall
+    # Set to true if upgrading a deployment created before the release of vSensor 6.3.
+    # Set to false (or remove) once the upgrade is complete.
+    # See the README and Customer Portal documentation for details.
+    vsensor-63-upgrade-in-progress: true

@@ -106,6 +106,18 @@ Consider reviewing:
 - https://cloud.google.com/compute/vm-instance-pricing
 - https://cloud.google.com/storage/pricing
 
+### Upgrading to vSensor 6.3
+
+The vSensor 6.3 release includes an updated base OS image. If you have an existing pre-6.3 deployment of this Quick Start running, you will need to update it.
+
+To do this:
+1. Update your existing copy of this Quick Start with the latest version (`git pull` or similar)
+2. In your `launch.yaml`, set the `vsensor-63-upgrade-in-progress: true` parameter
+3. Run `gcloud deployment-manager deployments update <YOUR_DEPLOYMENT_NAME> --config launch.yaml`
+4. Wait for the Managed Instance Group to start using the new template
+5. Set the `vsensor-63-upgrade-in-progress` parameter to `false` (or remove it)
+6. Run `gcloud deployment-manager deployments update` again
+
 ## Post deployment
 
 ### Confirming Operation
