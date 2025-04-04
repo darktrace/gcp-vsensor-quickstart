@@ -22,6 +22,7 @@ import re
 def GenerateConfig(context):
     """Generates YAML resource configuration."""
 
+    deployment_name = context.env["deployment"]
     name = context.env["name"]
     project = context.env["project"]
 
@@ -46,7 +47,7 @@ def GenerateConfig(context):
                 "parent": "projects/" + project,
                 "roleId": IAM_ROLE_NAME,
                 "role": {
-                    "title": "vSensor IAM Role",
+                    "title": f"vSensor {deployment_name} IAM Role",
                     "description": "Gives the vSensor permission to check the GCP bucket is private before use.",
                     "includedPermissions": ["storage.buckets.get"],
                     "stage": "GA",
