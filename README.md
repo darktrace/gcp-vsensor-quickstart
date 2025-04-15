@@ -1,5 +1,11 @@
 # Darktrace vSensor Quickstart for GCP
 
+> [!IMPORTANT]
+> GCP Deployment Manager, which this Quick Start uses, is [deprecated and will reach end of support on December 31, 2025](https://cloud.google.com/deployment-manager/docs/deprecations).
+> We recommend all customers redeploy their vSensor deployments using the [Darktrace GCP vSensor Terraform Module](https://github.com/darktrace/terraform-gcp-vsensor), which can be used with [GCP Infrastructure Manager](https://cloud.google.com/infrastructure-manager/docs/overview). An in-place migration from Deployment Manager to Infrastructure Manager is not possible.
+>
+> Existing vSensor deployments using Deployment Manager will continue running past this date, but updating or destroying all resources will need to be done manually.
+
 ## Introduction
 
 This Quick Start deploys Darktrace vSensor virtual threat detection on Google Cloud Platform. Instead of relying on flow logs, Darktrace probes analyze raw data from mirrored virtual private cloud (VPC) traffic to learn to identify threats. This guide covers the steps necessary to deploy this Quick Start.
